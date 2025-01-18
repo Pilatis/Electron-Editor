@@ -1,6 +1,5 @@
-const createNewFile = require('../functions/createNewFile')
 
-const Menu = () => {
+const Menu = (createNewFile, saveFileAs) => {
     const whatIsPlataform = process.platform === 'darwin';
 
     // template menu
@@ -10,12 +9,16 @@ const Menu = () => {
             submenu: [
                 {
                     label: 'Novo', click()  {
-                        createNewFile()
+                        createNewFile();
                     }
                 },
                 { label: 'Abrir' },
                 { label: 'Salvar' },
-                { label: 'Salvar como' },
+                { label: 'Salvar como',
+                  click() {
+                    saveFileAs();
+                  }
+                 },
                 { label: 'Fechar', role: whatIsPlataform ? 'close' : 'quit' },
             ]
         }
@@ -24,4 +27,4 @@ const Menu = () => {
     return templateMenu
 }
 
-module.exports = Menu();
+module.exports = Menu;
