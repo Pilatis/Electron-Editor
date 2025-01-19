@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const createMenu = require('./src/components/Menu');
 const fs = require('fs');
 const path = require('path');
@@ -7,23 +7,28 @@ var mainWindow = null;
 
 const createWindow = async () => {
     mainWindow = new BrowserWindow({
-        width: 800,
+        width: 750,
         height: 600,
         center: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-        }
+        },
+        hiddenInMissionControl: true
     });
 
     await mainWindow.loadFile('./src/pages/editor/index.html');
 
-    const menu = Menu.buildFromTemplate(createMenu(createNewFile, saveFileAs));
+    const menu = Menu.buildFromTemplate(createMenu(createNewFile, saveFile, saveFileAs, openFile));
     Menu.setApplicationMenu(menu);
 
     //mainWindow.webContents.openDevTools();
 
     createNewFile();
+
+    ipcMain.on('update-content', ((event, data) => {
+        file.content = data;
+    }))
 };
 
 var file = {}
@@ -37,13 +42,12 @@ function createNewFile() {
     };
 
     mainWindow.webContents.send('set-file', file);
-    console.log(file)
 };
 
 // save file in disk
 function writeFile(filePath){
     try {
-      fs.writeFile(filePath.File.content, ((error) => {
+      fs.writeFile(filePath, file.content, ((error) => {
         if (error) throw error;
     
         // file saved
@@ -51,7 +55,7 @@ function writeFile(filePath){
         file.saved = true;
         file.name = path.basename(filePath);
 
-        console.log(file)
+        mainWindow.webContents.send('set-file', file)
         
       }))
     } catch (error) {
@@ -67,6 +71,39 @@ async function saveFileAs() {
    if (dialogFile.canceled) return false;
 
    writeFile(dialogFile.filePath);
+}
+
+function saveFile() {
+    if (file.saved) {
+        return writeFile(file.path);
+    }
+
+    return saveFileAs()
+};
+
+function readFile(filePath) {
+    try {
+      return fs.readFileSync(filePath, 'utf-8')
+    } catch (error) {
+        return '';
+    }
+}
+
+async function openFile() {
+   let dialogFile = await dialog.showOpenDialog({
+    defaultPath: file.path
+   });
+
+   if (dialogFile.canceled) return false;
+
+   file = {
+    name: path.basename(dialogFile.filePaths[0]),
+    content: readFile(dialogFile.filePaths[0]),
+    saved: true,
+    path: dialogFile.filePaths[0]
+   }
+
+   mainWindow.webContents.send('set-file', file)
 }
 
 // on ready

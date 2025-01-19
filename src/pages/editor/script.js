@@ -1,12 +1,13 @@
 const { ipcRenderer } = require('electron');
 
-
 const title = document.getElementById('title')
 const textarea = document.getElementById('textarea');
 
 ipcRenderer.on('set-file', function(event, data) {
     textarea.value = data.content;
-    title.innerHTML = data.name + '| Electron Editor'
+    title.innerHTML = data.name + ' | Electron Editor'
 });
 
-function handleChangeText()
+function handleChangeText() {
+    ipcRenderer.send('update-content', textarea.value);
+}
